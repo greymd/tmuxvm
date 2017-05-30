@@ -141,15 +141,8 @@ case "$_cmd" in
     _current=$(_tmuxvm_current)
     _tmuxvm_list | grep -qE "^$_version$"
     [ $? -ne 0 ] && echo "Version '$_version' does not exit." && exit 1;
-
-    [ -e "$_CONFIG_HOME/versions/$_version" ] \
-      && rm -rf "$_CONFIG_HOME/versions/$_version" \
-      || { echo "Remove is failed."; exit 1; }
-
-    [ "$_version" = "$_current" ] \
-      && rm -f "$_CONFIG_HOME/bin/tmux" \
-      || { echo "Remove is failed."; exit 1; }
-
+    rm -rf "$_CONFIG_HOME/versions/$_version"
+    [ "$_version" = "$_current" ] && rm -f "$_CONFIG_HOME/bin/tmux"
     echo "$_version is successfully removed."
     ;;
 
