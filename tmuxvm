@@ -1,0 +1,177 @@
+#!/bin/bash
+
+set -u
+
+readonly _USER_HOME="${HOME:-/etc}"
+XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$_USER_HOME/.config}"
+readonly _CONFIG_HOME="${XDG_CONFIG_HOME}/tmuxvm"
+_RELEASE_URL='https://api.github.com/repos/tmux/tmux/releases'
+
+# parsrj provided by https://github.com/ShellShoccar-jpn/Parsrs/blob/master/parsrj.sh
+# which is public-domain software (CC0).
+_tmuxvm_parsrj () {
+bash <(echo "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" | base64 --decode | gzip -d)
+}
+
+_tmuxvm_list () {
+  if [ -e "$_CONFIG_HOME/list" ] \
+    && [ "$( grep -c . "$_CONFIG_HOME/list" )" -gt 1 ] \
+    && [ "${2-}" != "update" ];then
+    cat "$_CONFIG_HOME/list"
+    return 0
+  fi
+  curl -so- -L "$_RELEASE_URL" \
+    | _tmuxvm_parsrj \
+    | grep -E '\$\[[0-9]*\]\.tag_name' \
+    | awk '{print $2}' > "$_CONFIG_HOME/list"
+  [ $? -eq 0 ] && cat "$_CONFIG_HOME/list"
+}
+
+_tmuxvm_installed_list () {
+  _tmuxvm_list | grep -f <(ls -1 $_CONFIG_HOME/versions)
+}
+
+_tmuxvm_current () {
+  /bin/ls -al "$_CONFIG_HOME/bin/tmux" \
+    | perl -ple 's/^.* -> //' \
+    | perl -F'/' -anle 'print $F[$#F-2]'
+}
+
+_tmuxvm_usage () {
+cat << __EOS__
+Usage:
+tmuxvm [SUBCOMMANDS]
+
+SUBCOMMANDS:
+  --help            -- Show this help.
+  switch [VERSION]  -- Change version.
+  version           -- Show current version.
+  versions          -- Show installed versions.
+  install [VERSION] -- Install specified version.
+  remove [VERSION]  -- Remove specified version.
+  list [update]     -- Show available VERSION. Or update the list.
+__EOS__
+}
+
+_cmd="${1-}"
+case "$_cmd" in
+  switch)
+    _version="$2"
+    _tmuxvm_list | grep -qE "^$_version$"
+    [ $? -ne 0 ] && echo "Invalid version '$_version'" && exit 1;
+    if [ ! -e "$_CONFIG_HOME/versions/$_version/bin" ];then
+      echo "$_version is not installed yet." >&2
+      echo "Please install with tmuxvm install $_version" >&2
+      exit 1
+    fi
+    rm -f "$_CONFIG_HOME/bin/tmux"
+    ln -s "$_CONFIG_HOME/versions/$_version/bin/tmux" "$_CONFIG_HOME/bin/tmux"
+    ;;
+
+  version)
+    if [ ! -e "$_CONFIG_HOME/bin/tmux" ];then
+      echo "Not installed."
+      exit 1
+    fi
+    _current=$(_tmuxvm_current)
+    _tmuxvm_list | grep -qE "^$_current$"
+
+    if [ $? -eq 0 ];then
+      echo "$_current (set by $_CONFIG_HOME/bin/tmux)"
+    else
+      echo "Not installed."
+      exit 1
+    fi
+    ;;
+
+  versions)
+    if [ ! -e "$_CONFIG_HOME/bin/tmux" ];then
+      echo "Not installed."
+      exit 1
+    fi
+    _current=$(_tmuxvm_current)
+    _tmuxvm_list | grep -qE "^$_current$"
+    if [ $? -eq 0 ];then
+      _tmuxvm_installed_list \
+        | sed 's/^/  /' \
+        | sed "s/^  $_current$/* $_current/"
+    else
+      echo "Error!" >&2
+    fi
+    ;;
+
+  install)
+    _version="$2"
+    _tmuxvm_list | grep -qE "^$_version$"
+    [ $? -ne 0 ] && echo "Invalid version '$_version'" && exit 1;
+
+    _tmuxvm_installed_list | grep -qE "^$_version$"
+    if [ $? -eq 0 ];then
+      echo "'$_version' is already installed."
+      read -r -p "Are you re-install it? [Y/n] " response
+      case "$response" in
+          [yY][eE][sS]|[yY])
+              rm -rf "$_CONFIG_HOME/versions/$_version"
+              ;;
+          *)
+              echo "Aborted." >&2
+              exit 1;
+              ;;
+      esac
+    fi
+
+    mkdir -p "$_CONFIG_HOME/versions/$_version"
+    mkdir -p "$_CONFIG_HOME/versions/$_version/bin"
+    cd "$_CONFIG_HOME/versions/$_version"
+    curl -so- -L "https://github.com/tmux/tmux/releases/download/${_version}/tmux-${_version}.tar.gz" \
+      | tar zxv
+    cd "$_CONFIG_HOME/versions/$_version/tmux-${_version}"
+    ./configure
+    make
+    cp "$_CONFIG_HOME/versions/$_version/tmux-${_version}/tmux" "$_CONFIG_HOME/versions/$_version/bin/tmux"
+    chmod +x "$_CONFIG_HOME/versions/$_version/bin/tmux"
+    mkdir -p "$_CONFIG_HOME/bin"
+    rm -rf "$_CONFIG_HOME/versions/$_version/tmux-${_version}"
+    echo
+    echo "**Installation is successfully completed.**"
+    ;;
+
+  remove)
+    _version="$2"
+    _current=$(_tmuxvm_current)
+    _tmuxvm_list | grep -qE "^$_version$"
+    [ $? -ne 0 ] && echo "Version '$_version' does not exit." && exit 1;
+
+    [ -e "$_CONFIG_HOME/versions/$_version" ] \
+      && rm -rf "$_CONFIG_HOME/versions/$_version" \
+      || { echo "Remove is failed."; exit 1; }
+
+    [ "$_version" = "$_current" ] \
+      && rm -f "$_CONFIG_HOME/bin/tmux" \
+      || { echo "Remove is failed."; exit 1; }
+
+    echo "$_version is successfully removed."
+    ;;
+
+  list)
+    if [ "${2-}" = "update" ];then
+      rm -f "$_CONFIG_HOME/list"
+      _tmuxvm_list "update" | sed 's/^/  /'
+    else
+      _tmuxvm_list | sed 's/^/  /'
+    fi
+    ;;
+
+  --help)
+    _tmuxvm_usage
+    exit 1
+    ;;
+
+  *)
+    echo "'$_cmd' command is not found."
+    _tmuxvm_usage
+    exit 1
+    ;;
+
+esac
+
