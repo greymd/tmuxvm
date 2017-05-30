@@ -5,7 +5,10 @@ set -u
 readonly _USER_HOME="${HOME:-/etc}"
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$_USER_HOME/.config}"
 readonly _CONFIG_HOME="${XDG_CONFIG_HOME}/tmuxvm"
+readonly _VERSION_HOME="${_CONFIG_HOME}/versions"
 _RELEASE_URL='https://api.github.com/repos/tmux/tmux/releases'
+
+mkdir -p "$_VERSION_HOME"
 
 # parsrj provided by https://github.com/ShellShoccar-jpn/Parsrs/blob/master/parsrj.sh
 # which is public-domain software (CC0).
@@ -37,6 +40,12 @@ _tmuxvm_current () {
     | perl -F'/' -anle 'print $F[$#F-2]'
 }
 
+_tmuxvm_set () {
+  local _version="$1"
+  rm -f "$_CONFIG_HOME/bin/tmux"
+  ln -s "$_CONFIG_HOME/versions/$_version/bin/tmux" "$_CONFIG_HOME/bin/tmux"
+}
+
 _tmuxvm_usage () {
 cat << __EOS__
 Usage:
@@ -64,8 +73,7 @@ case "$_cmd" in
       echo "Please install with tmuxvm install $_version" >&2
       exit 1
     fi
-    rm -f "$_CONFIG_HOME/bin/tmux"
-    ln -s "$_CONFIG_HOME/versions/$_version/bin/tmux" "$_CONFIG_HOME/bin/tmux"
+    _tmuxvm_set "$_version"
     ;;
 
   version)
@@ -142,7 +150,16 @@ case "$_cmd" in
     _tmuxvm_list | grep -qE "^$_version$"
     [ $? -ne 0 ] && echo "Version '$_version' does not exit." && exit 1;
     rm -rf "$_CONFIG_HOME/versions/$_version"
-    [ "$_version" = "$_current" ] && rm -f "$_CONFIG_HOME/bin/tmux"
+    if [ "$_version" = "$_current" ];then
+      rm -f "$_CONFIG_HOME/bin/tmux"
+      _latest_version=$(_tmuxvm_installed_list | tail -n 1)
+      _tmuxvm_installed_list | grep -q "$_latest_version"
+      if [ $? -eq 0 ];then
+        echo "Warning: $_version is current version."
+        echo "         Set $_latest_version instead."
+        _tmuxvm_set "$_latest_version"
+      fi
+    fi
     echo "$_version is successfully removed."
     ;;
 
